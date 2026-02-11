@@ -1,0 +1,47 @@
+pipeline {
+  agent any
+
+  environment {
+    VERCEL_PROJECT_NAME = "Quiz-simple-app"
+    VERCEL_TOKEN = credentials("DevOps11")  // เก็บเป็น Secret Text ใน Jenkins Credentials
+  }
+
+  stages {
+
+    stage('Install') {
+      steps {
+        sh 'npm ci || npm install'
+      }
+    }
+
+    stage('Test npm') {
+      steps {
+        sh 'npm test'
+      }
+    }
+
+    stage('Build') {
+      steps {
+        sh 'npm run build'
+      }
+    }
+
+    stage('Test Build') {
+      steps {
+        // ตรวจว่า build output ถูกสร้างจริง (Next.js จะมีโฟลเดอร์ .next)
+        sh 'test -d .next'
+        // ทดสอบ start แบบเร็ว ๆ ว่ารันได้ (optional แต่ดูโปรมาก)
+        // sh 'timeout 5s npm start || true'
+      }
+    }
+
+    stage('Deploy') {
+      steps {
+        sh 'npm i -g vercel@latest'
+        // ถ้าโปรเจคยังไม่ผูก ให้ผูกครั้งแรกด้วย --confirm
+        sh 'vercel pull --yes --environment=production --token=$VERCEL_TOKEN || true'
+        sh 'vercel --prod --token=$VERCEL_TOKEN'
+      }
+    }
+  }
+}
